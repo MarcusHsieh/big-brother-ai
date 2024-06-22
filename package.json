@@ -11,11 +11,15 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@cartesia/cartesia-js": "^1.0.0-alpha.4",
+    "bcryptjs": "^2.4.3",
+    "groq-sdk": "^0.4.0",
     "next": "14.2.4",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
