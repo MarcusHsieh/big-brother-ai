@@ -1,7 +1,8 @@
 "use client";
 
 import fetch from "cross-fetch";
-import { getSession } from "next-auth/react";
+import { getSession, signOut } from "next-auth/react";
+import { Session } from "next-auth"; // Corrected import for Session type
 import Groq, { toFile } from "groq-sdk";
 import Cartesia from "@cartesia/cartesia-js";
 import { WebPlayer } from "@cartesia/cartesia-js";
@@ -13,7 +14,8 @@ import { reflectiveWomanEmbedding } from "@/app/voices";
 
 const PLAY_RECORDED_AUDIO = false;
 const GRAY_COLOR = "#30323E";
-const GROQ_ORANGE = "#F55036";
+const ORANGE_COLOR = "#F55036";
+const WHITE_COLOR = "#ffffff";
 
 const toolHandlers: { [key: string]: (...args: any[]) => any } = {
   getWeather: getWeather,
@@ -70,7 +72,7 @@ function useTTS(cartesia: Cartesia | null) {
       for await (const message of response.events("message")) {
         if (!receivedFirst) {
           const endTime = performance.now();
-          console.log(`[SPEACH]: ${(endTime - startTime).toFixed(2)} ms`);
+          console.log(`[SPEECH]: ${(endTime - startTime).toFixed(2)} ms`);
           await startPlayer(response);
           receivedFirst = true;
         }
@@ -417,12 +419,15 @@ const AudioAnimation = ({ playing }: { playing: boolean }) => {
   );
 };
 
+// Main App component
 function App({
   cartesiaApiKey,
   groqApiKey,
+  session // Added session as prop
 }: {
   cartesiaApiKey: string;
   groqApiKey: string;
+  session: Session; // Updated prop type to include session
 }) {
   const cartesia = cartesiaApiKey
     ? new Cartesia({
@@ -473,17 +478,12 @@ function App({
   }, [stopRecording]);
 
   const triggerCompletionFlow = async () => {
-    
     const { contentBuffer: response, toolCalls } = await streamCompletion(
       historyRef.current,
       groq
     );
     setHistoryLastUpdate(new Date());
 
-    // In the completion flow we also handle 
-    // calling the generated toolCalls in case there are any, which can recursively
-    // call triggerCompletionFlow in case
-    // more toolCalls are generated.
     if (toolCalls.length > 0) {
       await handleToolCalls(toolCalls);
     }
@@ -498,16 +498,6 @@ function App({
     }
   };
 
-  // trigger handleMicrophoneRelease when the focus is lost
-  useEffect(() => {
-    const handleFocusLoss = () => {
-      handleMicrophoneRelease();
-    };
-    window.addEventListener("focus", handleFocusLoss);
-    return () => window.removeEventListener("focus", handleFocusLoss);
-  }, [handleMicrophoneRelease]);
-
-  // Scroll to bottom when history changes
   useEffect(() => {
     const chatContainer = document.getElementById("chat-container");
     if (chatContainer) {
@@ -529,7 +519,6 @@ function App({
   const handleToolCalls = async (
     toolCalls: Groq.Chat.ChatCompletionMessageToolCall[]
   ) => {
-    // Assumed only called with toolCalls > 0
     if (toolCalls.length == 0) {
       throw new Error("only call handleToolCalls with toolCalls > 0");
     }
@@ -555,6 +544,10 @@ function App({
     await triggerCompletionFlow();
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
     <div className="flex h-full flex-col">
       <div className="p-4">
@@ -569,7 +562,7 @@ function App({
         <div
           className="fixed bottom-4 left-4 p-2 rounded-full cursor-pointer select-none"
           style={{
-            backgroundColor: isShowingMessages ? GROQ_ORANGE : GRAY_COLOR,
+            backgroundColor: isShowingMessages ? ORANGE_COLOR : GRAY_COLOR,
           }}
           onClick={handleClick}
         >
@@ -589,7 +582,7 @@ function App({
               isRecording ? "recording-animation" : ""
             }`}
             style={{
-              backgroundColor: isRecording ? GROQ_ORANGE : GRAY_COLOR,
+              backgroundColor: isRecording ? ORANGE_COLOR : GRAY_COLOR,
               transition: "transform 0.05s ease",
               transform: `scale(${1 + volume / 100 + (isRecording ? 0.1 : 0)})`,
               boxShadow: isRecording
@@ -654,13 +647,41 @@ function App({
           </>
         )}
       </div>
+      <div className="fixed top-5 right-5 flex items-center">
+        {session && session.user && (
+          <span style={{ marginRight: '10px', color: WHITE_COLOR }}>
+            Hello {session.user.name}
+          </span>
+        )}
+        <button
+          onClick={handleSignOut}
+          style={{
+            borderRadius: '50%',
+            width: '50px',
+            height: '50px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            border: 'none',
+            boxShadow: '0 0 15px rgba(0,0,0,0.2)'
+          }}
+        >
+          <Image width={40} height = {10} src="signout.svg" alt="signout" />
+        </button>
+      </div>
     </div>
   );
 }
 
+// Main component that fetches session and keys, then renders the App component
 export default function Home() {
-  const session = getSession();
   const router = useRouter();
+  const [session, setSession] = useState<Session | null>(null); // Added session state
+  const [keys, setKeys] = useState<{
+    cartesiaApiKey: string;
+    groqApiKey: string;
+  } | null>(null);
 
   useEffect(() => {
     const touchHandler = (ev: any) => {
@@ -687,16 +708,20 @@ export default function Home() {
     };
   }, []);
 
-  session.then((session) => {
-    if (!session || !session.user) {
-      router.push("/auth/signin");
-    }
-  });
+  useEffect(() => {
+    const checkSession = async () => {
+      const session = await getSession();
+      if (!session || !session.user) {
+        console.log("User is not signed in.");
+        router.push("/auth/signin");
+      } else {
+        console.log("User is signed in.");
+        setSession(session);
+      }
+    };
 
-  const [keys, setKeys] = useState<{
-    cartesiaApiKey: string;
-    groqApiKey: string;
-  } | null>(null);
+    checkSession();
+  }, [router]);
 
   useEffect(() => {
     const fetchApiKeys = async () => {
@@ -716,9 +741,14 @@ export default function Home() {
 
     fetchApiKeys();
   }, []);
-  if (keys) {
+
+  if (keys && session) { // Updated condition to check for session as well
     return (
-      <App cartesiaApiKey={keys.cartesiaApiKey} groqApiKey={keys.groqApiKey} />
+      <App 
+        cartesiaApiKey={keys.cartesiaApiKey} 
+        groqApiKey={keys.groqApiKey} 
+        session={session} // Passed session as prop
+      />
     );
   } else {
     return <div>Loading...</div>;
