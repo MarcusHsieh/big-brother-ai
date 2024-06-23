@@ -32,26 +32,29 @@ export default function SignIn() {
   };
 
   return (
-    <form className="p-2" onSubmit={handleSubmit}>
-      <div>
-        <label>Email</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-      </div>
-      <div>
-        <label>Password</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
-      <button type="submit">Sign In</button>
-    </form>
+    <div className="container mx-auto p-4">
+      <h1 className="text-center text-4xl font-bold mb-6">Welcome to Big Brother AI</h1>
+      <form className="p-2" onSubmit={handleSubmit}>
+        <div>
+          <label>Email</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div>
+          <label>Password</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit">Sign In</button>
+      </form>
+    </div>
   );
 }

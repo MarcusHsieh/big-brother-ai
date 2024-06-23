@@ -5,11 +5,16 @@ import bcrypt from 'bcryptjs';
 const users = [
   {
     id: 1,
-    name: 'John Doe',
-    email: 'dummy@groq.com',
-    password: bcrypt.hashSync('groqspeed', 10),
+    name: 'server',
+    email: 'server@server.com',
+    password: bcrypt.hashSync('server', 10),
   },
-  // Add more users as needed
+  {
+    id: 2,
+    name: 'Larry',
+    email: 'larry@gmail.com',
+    password: bcrypt.hashSync('larry', 10),
+  },
 ];
 
 const authOptions = {

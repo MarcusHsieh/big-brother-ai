@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth/next";
 
 const keys = {
   groqApiKey: process.env.GROQ_API_KEY || "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",
-  cartesiaApiKey: process.env.CARTESIA_API_KEY || "77c111e1-c696-4ba0-9b37-6d310fb35621",
+  cartesiaApiKey: process.env.CARTESIA_API_KEY || "a4a0b422-d8b3-4624-9cec-6ff38b6b058f",
 };
 
 export async function GET() {

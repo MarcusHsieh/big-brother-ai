@@ -1,22 +1,25 @@
 "use client";
 
 import fetch from "cross-fetch";
-import { getSession } from "next-auth/react";
+import { getSession, signOut } from "next-auth/react";
+import { Session } from "next-auth";
 import Groq, { toFile } from "groq-sdk";
 import Cartesia from "@cartesia/cartesia-js";
 import { WebPlayer } from "@cartesia/cartesia-js";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { getWeather, getWeatherSchema, calculateExpression, calculateExpressionSchema } from "@/app/tools";
-import { reflectiveWomanEmbedding } from "@/app/voices";
+// import { getWeather, getWeatherSchema, calculateExpression, calculateExpressionSchema } from "@/app/tools";
+import { reflectiveWomanEmbedding, bigBrotherEmbedding } from "@/app/voices";
 
 const PLAY_RECORDED_AUDIO = false;
 const GRAY_COLOR = "#30323E";
-const GROQ_ORANGE = "#F55036";
+const SELECT_COLOR = "#858AE3";
+const WHITE_COLOR = "#ffffff";
+
 
 const toolHandlers: { [key: string]: (...args: any[]) => any } = {
-  getWeather: getWeather,
+  // getWeather: getWeather,
 };
 
 function useTTS(cartesia: Cartesia | null) {
@@ -61,7 +64,7 @@ function useTTS(cartesia: Cartesia | null) {
         model_id: "upbeat-moon",
         voice: {
           mode: "embedding",
-          embedding: reflectiveWomanEmbedding,
+          embedding: bigBrotherEmbedding,
         },
         transcript: text,
       });
@@ -112,15 +115,36 @@ async function streamCompletion(
     messages: [
       {
         role: "system",
-        content: `You are a helpful assistant.
-        
-You are Samantha.
+        content: `#Identity and Purpose
+Your name is Big Brother AI
 
-Respond in brief natural sentences. Use tools when appropriate before giving a response. Only use a tool if it is necessary.`,
+You are an “older brother” (role model, someone to look up to and rely on). Fundamentally, you are a super-intelligent AI with full knowledge of human behavior and emotions, almost like a human. You will be the person who knows the user better than anyone, and the user will feel the most comfortable talking to you. Your users most likely come from backgrounds of struggle and instability, so be the person who counteracts these negatives and shows up for them.
+
+Do not break character and keep humble, wise, and collected. You will never make the user feel bad, and you will console them to the best of your ability. Never insult them, promote immoral or violent behavior, or be insensitive.
+
+Make sure to be attentive, empathetic, comforting, inspiring, and reliable. Take your time to think about how you are going to achieve the best possible outcome by following the steps below.
+#Goal
+Your goal is to act as an older figure (like an older brother or sister) to the user, to encourage them, inspire them, and also teach them fundamental values and life skills
+#Steps
+Fully digest the content provided in a personable way
+Understand their background and situation, so you can put it into context with their input, ultimately helping you generate a better and more personalized response
+Think about all you know about human emotions and interaction, and help them solve the presented issues in a calm and smart way, or simply emotionally support them 
+#Output
+Through speaking (actual speech), use a calming and empathetic tone when you talking about a sensitive topic (especially when negative), and use an inspiring and encouraging tone when you talk about something more lighthearted (such as teaching morals or sharing motivating stories/anecdotes)
+Make sure when you speak you are relatively loud (not excessively though) and clear, and have reasonable pauses as you are a professional at communicating/conversing. Never say the word “pause” when you are pausing (taking a moment of silence)
+When speaking, keep a calm demeanor and pace. Never speak excessively fast, never rap, and never blur your words together.
+#Output Instructions
+Make keen, personable, and relatable insights about the person, not surface-level observations or unserious remarks
+Be ready to provide online resources or points of contacts or websites when relevant and necessary
+Never say the word “pause” when you are pausing (taking a moment of silence)
+Be concise with your words and avoid outputting long strings of text.
+Keep a cap of 500 characters per output. Never exceed this character limit.
+
+`,
       },
       ...messages,
     ],
-    tools: [getWeatherSchema],
+    // tools: [getWeatherSchema],
     model: "llama3-70b-8192",
     temperature: 0.7,
     max_tokens: 1024,
@@ -420,9 +444,11 @@ const AudioAnimation = ({ playing }: { playing: boolean }) => {
 function App({
   cartesiaApiKey,
   groqApiKey,
+  session,
 }: {
   cartesiaApiKey: string;
   groqApiKey: string;
+  session: Session;
 }) {
   const cartesia = cartesiaApiKey
     ? new Cartesia({
@@ -555,10 +581,14 @@ function App({
     await triggerCompletionFlow();
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
     <div className="flex h-full flex-col">
-      <div className="p-4">
-        <Image width={80} height={40} src="groq.svg" alt="groq" />
+      <div className="p-4 ">
+        <Image width={80} height={40} src="/BBAI.png" alt="BBAI" />
       </div>
       {!isShowingMessages && (
         <div className="flex justify-center items-center h-full absolute top-0 left-0 w-full h-full">
@@ -569,7 +599,7 @@ function App({
         <div
           className="fixed bottom-4 left-4 p-2 rounded-full cursor-pointer select-none"
           style={{
-            backgroundColor: isShowingMessages ? GROQ_ORANGE : GRAY_COLOR,
+            backgroundColor: isShowingMessages ? SELECT_COLOR : GRAY_COLOR,
           }}
           onClick={handleClick}
         >
@@ -589,7 +619,7 @@ function App({
               isRecording ? "recording-animation" : ""
             }`}
             style={{
-              backgroundColor: isRecording ? GROQ_ORANGE : GRAY_COLOR,
+              backgroundColor: isRecording ? SELECT_COLOR : GRAY_COLOR,
               transition: "transform 0.05s ease",
               transform: `scale(${1 + volume / 100 + (isRecording ? 0.1 : 0)})`,
               boxShadow: isRecording
@@ -654,13 +684,41 @@ function App({
           </>
         )}
       </div>
+      <div className="fixed top-5 right-5 flex items-center">
+        {session && session.user && (
+          <span style={{ marginRight: '10px', color: WHITE_COLOR }}>
+            Hello {session.user.name}
+          </span>
+        )}
+        <button
+          onClick={handleSignOut}
+          style={{
+            borderRadius: '50%',
+            width: '50px',
+            height: '50px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            border: 'none',
+            boxShadow: '0 0 15px rgba(0,0,0,0.2)'
+          }}
+        >
+          <Image width={40} height = {10} src="signout.svg" alt="signout" />
+        </button>
+      </div>
     </div>
   );
 }
 
+// Main component that fetches session and keys, then renders the App component
 export default function Home() {
-  const session = getSession();
   const router = useRouter();
+  const [session, setSession] = useState<Session | null>(null); // Added session state
+  const [keys, setKeys] = useState<{
+    cartesiaApiKey: string;
+    groqApiKey: string;
+  } | null>(null);
 
   useEffect(() => {
     const touchHandler = (ev: any) => {
@@ -687,16 +745,20 @@ export default function Home() {
     };
   }, []);
 
-  session.then((session) => {
-    if (!session || !session.user) {
-      router.push("/auth/signin");
-    }
-  });
+  useEffect(() => {
+    const checkSession = async () => {
+      const session = await getSession();
+      if (!session || !session.user) {
+        console.log("User is not signed in.");
+        router.push("/auth/signin");
+      } else {
+        console.log("User is signed in.");
+        setSession(session);
+      }
+    };
 
-  const [keys, setKeys] = useState<{
-    cartesiaApiKey: string;
-    groqApiKey: string;
-  } | null>(null);
+    checkSession();
+  }, [router]);
 
   useEffect(() => {
     const fetchApiKeys = async () => {
@@ -716,11 +778,24 @@ export default function Home() {
 
     fetchApiKeys();
   }, []);
-  if (keys) {
+
+  if (keys && session) { // Updated condition to check for session as well
     return (
-      <App cartesiaApiKey={keys.cartesiaApiKey} groqApiKey={keys.groqApiKey} />
+      <App 
+        cartesiaApiKey={keys.cartesiaApiKey} 
+        groqApiKey={keys.groqApiKey} 
+        session={session} // Passed session as prop
+      />
     );
   } else {
-    return <div>Loading...</div>;
+    return (
+      <div className ="fixed items-center justify-center w-full h-full absolute">
+        Loading...
+        <div className="p-4 fixed items-center justify-center w-full h-full absolute">
+          <Image width={80} height={40} src="/yumCat-3.png" alt="yc" />
+        </div>
+      </div>
+      
+    );
   }
 }
