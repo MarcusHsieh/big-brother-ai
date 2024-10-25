@@ -352,7 +352,8 @@ const AudioAnimation = ({ playing }: { playing: boolean }) => {
     const container = containerRef.current;
     if (!container) return;
     const baseColor = GRAY_COLOR;
-    const playingColors = ["#F55036", "#B84735", "#833B2F", "#762417"];
+    // const playingColors = ["#F55036", "#B84735", "#833B2F", "#762417"];
+    const playingColors = ["#111344", "#858AE3", "#C2EFEB", "#C2EFEB"];
     const animationSpeed = playing ? 5 : 0.5; // Fast for true, slow for false
 
     const centerCircle = container.querySelector(
